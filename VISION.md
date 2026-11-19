@@ -2,7 +2,7 @@
 
 Cora Commons exists to organize intelligence, resources and capital around real human needs—while preserving what works so the next problem becomes easier to solve.
 
-## Purpose (proposed, awaiting steward approval)
+## Purpose
 
 AI of the people, by the people, for the people. People join by consent, and step by step, with legal and compliance review, become stewards of an AI they contribute to and benefit from. The Commons is not built to concentrate wealth or control in a few hands. It exists to give people more control over their own lives, in line with shared vision, values and care for everyone.
 
