@@ -24,6 +24,10 @@ You do not need a special Cora account or a particular AI agent.
 
 If the agent finds a weakness, it should help convert the finding into a bounded solution through [`IMPROVE.md`](IMPROVE.md), not merely produce a list of problems.
 
+## Where truth lives
+
+Cora Commons is the shared, public layer of the network. Each participant keeps their own notes in whatever app they choose (Notion, Obsidian, plain files) and decides there what stays private and what is contributed here. As the network grows, this repository and its private counterparts become the single source of truth for shared work; nothing private belongs here.
+
 ## Cora Steward triage
 
 The repository includes a draft-only **Cora Steward** workflow. A GitHub Action
