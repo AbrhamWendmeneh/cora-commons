@@ -45,6 +45,23 @@ def _public_string(value: str, field: str, errors: list[str]) -> None:
         errors.append(f"{field} must not contain an email address or phone number")
 
 
+def _check_public_strings(value: object, field: str, errors: list[str]) -> None:
+    """Reject email and phone-like content in every public JSON string value."""
+    pending: list[tuple[object, str]] = [(value, field)]
+    while pending:
+        current, current_field = pending.pop()
+        if isinstance(current, str):
+            _public_string(current, current_field, errors)
+        elif isinstance(current, list):
+            for index in range(len(current) - 1, -1, -1):
+                pending.append((current[index], f"{current_field}[{index}]"))
+        elif isinstance(current, dict):
+            for key in reversed(current):
+                name = str(key)
+                child = f"{current_field}.{name}" if current_field else name
+                pending.append((current[key], child))
+
+
 def _validate_list(value: object, field: str, errors: list[str]) -> list[object] | None:
     if not isinstance(value, list):
         errors.append(f"{field} must be a list")
@@ -68,7 +85,6 @@ def validate_standup(data: object, filename: str | Path | None = None) -> list[s
     if member:
         if not MEMBER_ID.fullmatch(member):
             errors.append("member must be a GitHub handle or agent id")
-        _public_string(member, "member", errors)
 
     shipped = _validate_list(data.get("shipped"), "shipped", errors)
     if shipped is not None:
@@ -77,13 +93,9 @@ def validate_standup(data: object, filename: str | Path | None = None) -> list[s
             if not isinstance(item, dict):
                 errors.append(f"shipped[{index}] must be an object")
                 continue
-            text = _required_string(item, "text", errors, prefix)
-            if text:
-                _public_string(text, f"{prefix}text", errors)
+            _required_string(item, "text", errors, prefix)
             if "link" in item:
-                link = _required_string(item, "link", errors, prefix)
-                if link:
-                    _public_string(link, f"{prefix}link", errors)
+                _required_string(item, "link", errors, prefix)
 
     blocked = _validate_list(data.get("blocked"), "blocked", errors)
     if blocked is not None:
@@ -92,13 +104,9 @@ def validate_standup(data: object, filename: str | Path | None = None) -> list[s
             if not isinstance(item, dict):
                 errors.append(f"blocked[{index}] must be an object")
                 continue
-            text = _required_string(item, "text", errors, prefix)
-            if text:
-                _public_string(text, f"{prefix}text", errors)
+            _required_string(item, "text", errors, prefix)
             _date_value(item.get("since"), f"{prefix}since", errors)
-            unblocks = _required_string(item, "unblocks", errors, prefix)
-            if unblocks:
-                _public_string(unblocks, f"{prefix}unblocks", errors)
+            _required_string(item, "unblocks", errors, prefix)
 
     needs = _validate_list(data.get("need"), "need", errors)
     if needs is not None:
@@ -107,10 +115,9 @@ def validate_standup(data: object, filename: str | Path | None = None) -> list[s
             if not isinstance(item, dict):
                 errors.append(f"need[{index}] must be an object")
                 continue
-            text = _required_string(item, "text", errors, prefix)
-            if text:
-                _public_string(text, f"{prefix}text", errors)
-            if item.get("from") not in NEED_SOURCES:
+            _required_string(item, "text", errors, prefix)
+            source = item.get("from")
+            if not isinstance(source, str) or source not in NEED_SOURCES:
                 errors.append(f"{prefix}from must be steward, member or anyone")
 
     if filename is not None and record_date is not None and member:
@@ -119,6 +126,7 @@ def validate_standup(data: object, filename: str | Path | None = None) -> list[s
         if actual != expected:
             errors.append(f"filename must be {expected}")
 
+    _check_public_strings(data, "", errors)
     return errors
 
 

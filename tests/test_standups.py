@@ -46,10 +46,22 @@ class StandupValidationTests(unittest.TestCase):
         record = copy.deepcopy(EXAMPLES[0])
         record["member"] = "person@example.com"
         record["shipped"][0]["text"] = "Call +1 202-555-0199 after review"
+        record["metadata"] = {"contact": "another.person@example.com"}
         errors = validate_errors(record)
         self.assertIn("member must be a GitHub handle or agent id", errors)
         self.assertIn("member must not contain an email address or phone number", errors)
         self.assertIn("shipped[0].text must not contain an email address or phone number", errors)
+        self.assertIn("metadata.contact must not contain an email address or phone number", errors)
+        self.assertEqual(errors.count("member must not contain an email address or phone number"), 1)
+
+    def test_deeply_nested_public_data_does_not_crash(self) -> None:
+        record = copy.deepcopy(EXAMPLES[0])
+        nested: dict[str, object] = record
+        for _ in range(1_200):
+            child: dict[str, object] = {}
+            nested["metadata"] = child
+            nested = child
+        self.assertEqual(validate_errors(record), [])
 
     def test_rejects_more_than_twenty_items_per_list(self) -> None:
         record = copy.deepcopy(EXAMPLES[0])
@@ -69,6 +81,13 @@ class StandupValidationTests(unittest.TestCase):
         self.assertIn("blocked[0].since must be a YYYY-MM-DD date", errors)
         self.assertIn("blocked[0].unblocks must be a non-empty string", errors)
         self.assertIn("need[0].from must be steward, member or anyone", errors)
+
+    def test_malformed_need_source_does_not_crash_validation(self) -> None:
+        for source in (["member"], {"source": "member"}):
+            with self.subTest(source=source):
+                record = copy.deepcopy(EXAMPLES[0])
+                record["need"] = [{"text": "Reviewer", "from": source}]
+                self.assertIn("need[0].from must be steward, member or anyone", validate_errors(record))
 
     def test_filename_must_match_canonical_record_path(self) -> None:
         record = EXAMPLES[0]
